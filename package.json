@@ -38,7 +38,8 @@
       "contextCaddy": [
         {
           "id": "contextCaddy.taskState",
-          "name": "Task State"
+          "name": "Task State",
+          "type": "webview"
         }
       ]
     },
