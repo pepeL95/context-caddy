@@ -85,7 +85,7 @@ After installation and reload, Copilot in that same VS Code window can discover 
 
 1. Reload VS Code after installation with `Developer: Reload Window`.
 2. Run `Context Caddy: Open Task State` from the Command Palette.
-3. In the `Context Caddy` activity bar container, enter and save the current task-state text.
+3. In the `Context Caddy` activity bar container, enter the current task-state text.
 4. Open Copilot Chat in Agent mode.
 5. Enable `Task State Verifier` in the tools picker.
 6. Use `#taskStateVerifier` when you want Copilot to focus the task-state textbox and wait for you to submit text.
@@ -104,7 +104,7 @@ If an agent or teammate needs to set this up from scratch, the reliable local se
 8. Enable `Task State Verifier` in the tools picker.
 9. Open `Context Caddy: Open Task State` from the Command Palette.
 10. Use `#taskStateVerifier` explicitly for the most reliable invocation path.
-11. When the tool is approved, enter text in the focused Task State view and click `Submit to Copilot`.
+11. When the tool is approved, enter text in the focused Task State view and click `Submit`.
 
 ## Test in Copilot Chat
 

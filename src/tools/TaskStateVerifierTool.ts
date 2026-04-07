@@ -3,10 +3,6 @@ import * as vscode from 'vscode';
 type TaskStateVerifierInput = Record<string, never>;
 type TaskStateViewMessage =
   | {
-      type: 'save';
-      value: string;
-    }
-  | {
       type: 'submit';
       value: string;
     }
@@ -93,15 +89,6 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
           await webviewView.webview.postMessage({
             type: 'mode',
             verificationPending: this.pendingVerification !== undefined
-          });
-          return;
-        }
-
-        if (message.type === 'save') {
-          await this.context.workspaceState.update(TASK_STATE_KEY, message.value);
-          await webviewView.webview.postMessage({
-            type: 'saved',
-            value: message.value
           });
           return;
         }
@@ -268,23 +255,21 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
       <code>#taskStateVerifier</code> tool can also focus this box and wait for
       you to submit text during verification.
     </p>
-    <div class="callout" id="callout">
-      Copilot is waiting for task-state verification. Enter text, then use
-      <strong>Submit to Copilot</strong>.
-    </div>
+      <div class="callout" id="callout">
+        Copilot is waiting for task-state verification. Enter text, then use
+        <strong>Submit</strong>.
+      </div>
     <textarea
       id="taskState"
       placeholder="Describe the current task state"
     ></textarea>
     <div class="actions">
-      <button class="primary" id="save">Save Task State</button>
-      <button class="primary" id="submit">Submit to Copilot</button>
+      <button class="primary" id="submit">Submit</button>
     </div>
     <div class="status" id="status"></div>
     <script nonce="${nonce}">
       const vscode = acquireVsCodeApi();
       const textarea = document.getElementById('taskState');
-      const save = document.getElementById('save');
       const submit = document.getElementById('submit');
       const status = document.getElementById('status');
       const callout = document.getElementById('callout');
@@ -297,17 +282,11 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
       const renderMode = () => {
         callout.classList.toggle('visible', verificationPending);
         submit.disabled = !verificationPending;
-        save.disabled = verificationPending;
-      };
-
-      save.addEventListener('click', () => {
-        vscode.postMessage({ type: 'save', value: textarea.value });
-        setStatus('Saved.');
       });
 
       submit.addEventListener('click', () => {
         vscode.postMessage({ type: 'submit', value: textarea.value });
-        setStatus('Submitted to Copilot.');
+        setStatus('Submitted.');
       });
 
       textarea.addEventListener('keydown', (event) => {
@@ -317,7 +296,6 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
             submit.click();
             return;
           }
-          save.click();
         }
       });
 
