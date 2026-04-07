@@ -6,7 +6,7 @@ This extension currently contributes one VS Code Language Model Tool:
 
 In Copilot Chat agent mode, it can be enabled as a tool and explicitly invoked with `#taskStateVerifier`.
 
-The tool takes no model-provided input. On invocation, it can reveal and focus the persistent Context Caddy Task State view, wait for the user to submit task-state text there, return that submitted text unchanged, and then clear the textbox:
+The tool takes no model-provided input. On invocation, it reveals and focuses the persistent Context Caddy Task State view, waits for the user to submit task-state text there, returns that submitted text unchanged, and then clears the textbox:
 
 ```text
 user approved the current plan
@@ -19,7 +19,7 @@ This implementation is intentionally minimal:
 - It accepts no input from the model.
 - It provides a persistent Task State view in the Context Caddy activity bar container.
 - The user can edit multiline task-state text there at any time.
-- During tool invocation, the extension can reveal that view, focus the textbox, and wait for `Submit to Copilot`.
+- During tool invocation, the extension reveals that view, focuses the textbox, and waits for `Submit`.
 - After successful submission, the tool returns the exact submitted text unchanged and clears the textbox.
 - The view is more durable than transient prompts because it is not tied to a popup that disappears on focus changes.
 - Its description is written to make this the intended pre-response verification step for current task state and user acceptance context.
@@ -85,7 +85,7 @@ After installation and reload, Copilot in that same VS Code window can discover 
 
 1. Reload VS Code after installation with `Developer: Reload Window`.
 2. Run `Context Caddy: Open Task State` from the Command Palette.
-3. In the `Context Caddy` activity bar container, enter the current task-state text.
+3. In the `Context Caddy` activity bar container, enter task-state text there directly, or wait for Copilot to focus it during verification.
 4. Open Copilot Chat in Agent mode.
 5. Enable `Task State Verifier` in the tools picker.
 6. Use `#taskStateVerifier` when you want Copilot to focus the task-state textbox and wait for you to submit text.

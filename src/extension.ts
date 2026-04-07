@@ -28,7 +28,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.lm.registerTool(
       'yourpublisher_taskStateVerifier',
-      new TaskStateVerifierTool(context, taskStateViewProvider)
+      new TaskStateVerifierTool(taskStateViewProvider)
     )
   );
 
