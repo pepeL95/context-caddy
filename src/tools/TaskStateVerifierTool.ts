@@ -61,6 +61,10 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
   private viewReadyPromise: Promise<void> = new Promise((resolve) => {
     this.viewReadyResolver = resolve;
   });
+  private webviewReadyResolver?: () => void;
+  private webviewReadyPromise: Promise<void> = new Promise((resolve) => {
+    this.webviewReadyResolver = resolve;
+  });
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -72,6 +76,7 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     this.view = webviewView;
     this.viewReadyResolver?.();
     this.viewReadyResolver = undefined;
+    this.resetWebviewReadyPromise();
     webviewView.webview.options = {
       enableScripts: true
     };
@@ -85,6 +90,8 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(
       async (message: TaskStateViewMessage) => {
         if (message.type === 'ready') {
+          this.webviewReadyResolver?.();
+          this.webviewReadyResolver = undefined;
           await syncState();
           await webviewView.webview.postMessage({
             type: 'mode',
@@ -119,6 +126,8 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
       this.view = undefined;
       this.pendingVerification?.resolve('');
       this.pendingVerification = undefined;
+      this.resetViewReadyPromise();
+      this.resetWebviewReadyPromise();
     });
   }
 
@@ -128,24 +137,25 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     }
 
     await vscode.commands.executeCommand('workbench.view.extension.contextCaddy');
-    await vscode.commands.executeCommand(`${TASK_STATE_VIEW_ID}.focus`);
     const view = await this.waitForView();
+    view?.show(false);
+    await this.waitForWebviewReady();
 
-    const activeValue = this.context.workspaceState.get<string>(TASK_STATE_KEY, '');
-    await view?.webview.postMessage({
-      type: 'setValue',
-      value: activeValue
-    });
-    await view?.webview.postMessage({
-      type: 'mode',
-      verificationPending: true
-    });
-    await view?.webview.postMessage({
-      type: 'focusForVerification'
-    });
-
-    return await new Promise<string>((resolve) => {
+    return await new Promise<string>(async (resolve) => {
       this.pendingVerification = { resolve };
+      const activeValue = this.context.workspaceState.get<string>(TASK_STATE_KEY, '');
+
+      await view?.webview.postMessage({
+        type: 'setValue',
+        value: activeValue
+      });
+      await view?.webview.postMessage({
+        type: 'mode',
+        verificationPending: true
+      });
+      await view?.webview.postMessage({
+        type: 'focusForVerification'
+      });
 
       token.onCancellationRequested(async () => {
         if (!this.pendingVerification) {
@@ -168,6 +178,22 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
 
     await this.viewReadyPromise;
     return this.view;
+  }
+
+  private async waitForWebviewReady(): Promise<void> {
+    await this.webviewReadyPromise;
+  }
+
+  private resetViewReadyPromise(): void {
+    this.viewReadyPromise = new Promise((resolve) => {
+      this.viewReadyResolver = resolve;
+    });
+  }
+
+  private resetWebviewReadyPromise(): void {
+    this.webviewReadyPromise = new Promise((resolve) => {
+      this.webviewReadyResolver = resolve;
+    });
   }
 
   private getWebviewHtml(): string {
@@ -324,8 +350,10 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
           return;
         }
         if (message.type === 'focusForVerification') {
-          textarea.focus();
-          textarea.select();
+          window.setTimeout(() => {
+            textarea.focus();
+            textarea.select();
+          }, 0);
         }
       });
 
