@@ -136,26 +136,8 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
       return '';
     }
 
-    await vscode.commands.executeCommand('workbench.view.extension.contextCaddy');
-    const view = await this.waitForView();
-    view?.show(false);
-    await this.waitForWebviewReady();
-
-    return await new Promise<string>(async (resolve) => {
+    return await new Promise<string>((resolve) => {
       this.pendingVerification = { resolve };
-      const activeValue = this.context.workspaceState.get<string>(TASK_STATE_KEY, '');
-
-      await view?.webview.postMessage({
-        type: 'setValue',
-        value: activeValue
-      });
-      await view?.webview.postMessage({
-        type: 'mode',
-        verificationPending: true
-      });
-      await view?.webview.postMessage({
-        type: 'focusForVerification'
-      });
 
       token.onCancellationRequested(async () => {
         if (!this.pendingVerification) {
@@ -163,11 +145,41 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
         }
         this.pendingVerification.resolve('');
         this.pendingVerification = undefined;
-        await view?.webview.postMessage({
+        await this.view?.webview.postMessage({
           type: 'mode',
           verificationPending: false
         });
       });
+
+      void this.beginVerificationFlow().catch(async () => {
+        if (!this.pendingVerification) {
+          return;
+        }
+
+        this.pendingVerification.resolve('');
+        this.pendingVerification = undefined;
+      });
+    });
+  }
+
+  private async beginVerificationFlow(): Promise<void> {
+    await vscode.commands.executeCommand('workbench.view.extension.contextCaddy');
+    const view = await this.waitForView();
+    view?.show(false);
+    await vscode.commands.executeCommand(`${TASK_STATE_VIEW_ID}.focus`);
+    await this.waitForWebviewReady();
+
+    const activeValue = this.context.workspaceState.get<string>(TASK_STATE_KEY, '');
+    await view?.webview.postMessage({
+      type: 'setValue',
+      value: activeValue
+    });
+    await view?.webview.postMessage({
+      type: 'mode',
+      verificationPending: true
+    });
+    await view?.webview.postMessage({
+      type: 'focusForVerification'
     });
   }
 
