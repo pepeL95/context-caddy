@@ -1,28 +1,33 @@
 import * as vscode from 'vscode';
 
 type TaskStateVerifierInput = Record<string, never>;
-type VerifierMessage =
+type TaskStateViewMessage =
   | {
-      type: 'submit';
+      type: 'save';
       value: string;
     }
   | {
-      type: 'cancel';
+      type: 'ready';
     };
+
+export const TASK_STATE_KEY = 'contextCaddy.taskState';
+export const TASK_STATE_VIEW_ID = 'contextCaddy.taskState';
 
 export class TaskStateVerifierTool
   implements vscode.LanguageModelTool<TaskStateVerifierInput>
 {
+  constructor(private readonly context: vscode.ExtensionContext) {}
+
   async prepareInvocation(
     _options: vscode.LanguageModelToolInvocationPrepareOptions<TaskStateVerifierInput>,
     _token: vscode.CancellationToken
   ): Promise<vscode.PreparedToolInvocation | undefined> {
     return {
-      invocationMessage: 'Verifying task state with the user',
+      invocationMessage: 'Reading saved task state',
       confirmationMessages: {
         title: 'Verify task state',
         message: new vscode.MarkdownString(
-          'Allow this tool to prompt you for the current task state and return your response to Copilot?'
+          'Allow this tool to read the saved task-state text from Context Caddy and return it to Copilot?'
         )
       }
     };
@@ -32,73 +37,52 @@ export class TaskStateVerifierTool
     _options: vscode.LanguageModelToolInvocationOptions<TaskStateVerifierInput>,
     _token: vscode.CancellationToken
   ): Promise<vscode.LanguageModelToolResult> {
-    const userProvidedTaskState = await this.promptForTaskState(_token);
+    const userProvidedTaskState =
+      this.context.workspaceState.get<string>(TASK_STATE_KEY, '');
 
     return new vscode.LanguageModelToolResult([
-      new vscode.LanguageModelTextPart(userProvidedTaskState ?? '')
+      new vscode.LanguageModelTextPart(userProvidedTaskState)
     ]);
   }
+}
 
-  private async promptForTaskState(
-    token: vscode.CancellationToken
-  ): Promise<string> {
-    const panel = vscode.window.createWebviewPanel(
-      'contextCaddyTaskStateVerifier',
-      'Task State Verifier',
-      vscode.ViewColumn.Active,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true
-      }
-    );
+export class TaskStateViewProvider implements vscode.WebviewViewProvider {
+  constructor(private readonly context: vscode.ExtensionContext) {}
 
-    panel.webview.html = this.getWebviewHtml(panel.webview);
+  resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    _context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken
+  ): void {
+    webviewView.webview.options = {
+      enableScripts: true
+    };
+    webviewView.webview.html = this.getWebviewHtml();
 
-    return await new Promise<string>((resolve) => {
-      let settled = false;
+    const syncState = async (): Promise<void> => {
+      const value = this.context.workspaceState.get<string>(TASK_STATE_KEY, '');
+      await webviewView.webview.postMessage({ type: 'setValue', value });
+    };
 
-      const finish = (value: string): void => {
-        if (settled) {
+    webviewView.webview.onDidReceiveMessage(
+      async (message: TaskStateViewMessage) => {
+        if (message.type === 'ready') {
+          await syncState();
           return;
         }
-        settled = true;
-        resolve(value);
-        panel.dispose();
-      };
 
-      const messageDisposable = panel.webview.onDidReceiveMessage(
-        (message: VerifierMessage) => {
-          if (message.type === 'submit') {
-            finish(message.value);
-            return;
-          }
-
-          finish('');
-        }
-      );
-
-      const disposeDisposable = panel.onDidDispose(() => {
-        if (!settled) {
-          settled = true;
-          resolve('');
-        }
-      });
-
-      const cancellationDisposable = token.onCancellationRequested(() => {
-        finish('');
-      });
-
-      panel.webview.postMessage({ type: 'focus' }).then(undefined, () => undefined);
-
-      panel.onDidDispose(() => {
-        messageDisposable.dispose();
-        disposeDisposable.dispose();
-        cancellationDisposable.dispose();
-      });
-    });
+        await this.context.workspaceState.update(TASK_STATE_KEY, message.value);
+        await webviewView.webview.postMessage({
+          type: 'saved',
+          value: message.value
+        });
+      },
+      undefined,
+      this.context.subscriptions
+    );
   }
 
-  private getWebviewHtml(webview: vscode.Webview): string {
+  private getWebviewHtml(): string {
     const nonce = this.getNonce();
 
     return `<!DOCTYPE html>
@@ -110,7 +94,7 @@ export class TaskStateVerifierTool
       content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Task State Verifier</title>
+    <title>Task State</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -120,18 +104,14 @@ export class TaskStateVerifierTool
         color: var(--vscode-foreground);
         background: var(--vscode-editor-background);
         margin: 0;
-        padding: 16px;
-      }
-      .shell {
-        max-width: 760px;
-        margin: 0 auto;
+        padding: 12px;
       }
       h1 {
-        font-size: 18px;
+        font-size: 16px;
         margin: 0 0 8px;
       }
       p {
-        margin: 0 0 12px;
+        margin: 0 0 10px;
         line-height: 1.5;
       }
       textarea {
@@ -139,7 +119,7 @@ export class TaskStateVerifierTool
         min-height: 220px;
         resize: vertical;
         box-sizing: border-box;
-        padding: 12px;
+        padding: 10px;
         border: 1px solid var(--vscode-input-border, transparent);
         color: var(--vscode-input-foreground);
         background: var(--vscode-input-background);
@@ -148,11 +128,11 @@ export class TaskStateVerifierTool
       .actions {
         display: flex;
         gap: 8px;
-        margin-top: 12px;
+        margin-top: 10px;
       }
       button {
         border: 0;
-        padding: 8px 14px;
+        padding: 8px 12px;
         cursor: pointer;
         font: inherit;
       }
@@ -160,61 +140,68 @@ export class TaskStateVerifierTool
         color: var(--vscode-button-foreground);
         background: var(--vscode-button-background);
       }
-      .secondary {
-        color: var(--vscode-button-secondaryForeground);
-        background: var(--vscode-button-secondaryBackground);
-      }
-      .hint {
+      .status {
         color: var(--vscode-descriptionForeground);
-        margin-top: 12px;
+        margin-top: 10px;
+        min-height: 18px;
+      }
+      code {
+        font-family: var(--vscode-editor-font-family);
       }
     </style>
   </head>
   <body>
-    <div class="shell">
-      <h1>Confirm the current task state</h1>
-      <p>
-        Enter the task state, approval, or request context you want Copilot to
-        use. The submitted text will be returned unchanged to the tool caller.
-      </p>
-      <textarea
-        id="taskState"
-        placeholder="Describe or approve the current task state"
-      ></textarea>
-      <div class="actions">
-        <button class="primary" id="submit">Submit</button>
-        <button class="secondary" id="cancel">Cancel</button>
-      </div>
-      <p class="hint">
-        This panel supports multiline input and remains available while hidden.
-      </p>
+    <h1>Task State</h1>
+    <p>
+      Save the current task state, approval, or request context here. The
+      <code>#taskStateVerifier</code> tool returns this saved text unchanged.
+    </p>
+    <textarea
+      id="taskState"
+      placeholder="Describe the current task state"
+    ></textarea>
+    <div class="actions">
+      <button class="primary" id="save">Save Task State</button>
     </div>
+    <div class="status" id="status"></div>
     <script nonce="${nonce}">
       const vscode = acquireVsCodeApi();
       const textarea = document.getElementById('taskState');
-      const submit = document.getElementById('submit');
-      const cancel = document.getElementById('cancel');
+      const save = document.getElementById('save');
+      const status = document.getElementById('status');
 
-      const sendSubmit = () => {
-        vscode.postMessage({ type: 'submit', value: textarea.value });
+      const setStatus = (text) => {
+        status.textContent = text;
       };
 
-      submit.addEventListener('click', sendSubmit);
-      cancel.addEventListener('click', () => {
-        vscode.postMessage({ type: 'cancel' });
+      save.addEventListener('click', () => {
+        vscode.postMessage({ type: 'save', value: textarea.value });
       });
+
       textarea.addEventListener('keydown', (event) => {
         if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
           event.preventDefault();
-          sendSubmit();
+          save.click();
         }
       });
+
       window.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'focus') {
-          textarea.focus();
+        const message = event.data;
+        if (!message) {
+          return;
+        }
+        if (message.type === 'setValue') {
+          textarea.value = message.value ?? '';
+          setStatus('');
+          return;
+        }
+        if (message.type === 'saved') {
+          textarea.value = message.value ?? '';
+          setStatus('Saved.');
         }
       });
-      textarea.focus();
+
+      vscode.postMessage({ type: 'ready' });
     </script>
   </body>
 </html>`;

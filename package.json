@@ -19,6 +19,29 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "contextCaddy.openTaskStateView",
+        "title": "Context Caddy: Open Task State"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "contextCaddy",
+          "title": "Context Caddy",
+          "icon": "$(checklist)"
+        }
+      ]
+    },
+    "views": {
+      "contextCaddy": [
+        {
+          "id": "contextCaddy.taskState",
+          "name": "Task State"
+        }
+      ]
+    },
     "languageModelTools": [
       {
         "name": "yourpublisher_taskStateVerifier",
@@ -30,8 +53,8 @@
         ],
         "toolReferenceName": "taskStateVerifier",
         "displayName": "Task State Verifier",
-        "modelDescription": "Task-state verification tool. The model should call this before user-facing responses when it needs the user to confirm or restate the current task state, approval, or request context. This tool does not expect model-provided input. Instead, it opens a dedicated multiline verification panel for the user and returns the submitted text unchanged for the model to use.",
-        "userDescription": "Ask the user to confirm the current task state and return that text to the model.",
+        "modelDescription": "Task-state verification tool. The model should call this before user-facing responses when it needs the latest user-approved task state, approval, or request context. This tool does not collect input during invocation. Instead, it returns the current text saved in the Context Caddy Task State view unchanged.",
+        "userDescription": "Return the saved task-state text from the Context Caddy Task State view.",
         "canBeReferencedInPrompt": true,
         "icon": "$(checklist)",
         "inputSchema": {

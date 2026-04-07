@@ -1,13 +1,38 @@
 import * as vscode from 'vscode';
-import { TaskStateVerifierTool } from './tools/TaskStateVerifierTool';
+import {
+  TASK_STATE_KEY,
+  TASK_STATE_VIEW_ID,
+  TaskStateVerifierTool,
+  TaskStateViewProvider
+} from './tools/TaskStateVerifierTool';
 
 export function activate(context: vscode.ExtensionContext): void {
+  const taskStateViewProvider = new TaskStateViewProvider(context);
+
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      TASK_STATE_VIEW_ID,
+      taskStateViewProvider
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('contextCaddy.openTaskStateView', async () => {
+      await vscode.commands.executeCommand(
+        'workbench.view.extension.contextCaddy'
+      );
+      await vscode.commands.executeCommand(`${TASK_STATE_VIEW_ID}.focus`);
+    })
+  );
+
   context.subscriptions.push(
     vscode.lm.registerTool(
       'yourpublisher_taskStateVerifier',
-      new TaskStateVerifierTool()
+      new TaskStateVerifierTool(context)
     )
   );
+
+  void context.workspaceState.get<string>(TASK_STATE_KEY, '');
 }
 
 export function deactivate(): void {}
