@@ -7,6 +7,10 @@ type TaskStateViewMessage =
       value: string;
     }
   | {
+      type: 'submit';
+      value: string;
+    }
+  | {
       type: 'ready';
     };
 
@@ -16,7 +20,10 @@ export const TASK_STATE_VIEW_ID = 'contextCaddy.taskState';
 export class TaskStateVerifierTool
   implements vscode.LanguageModelTool<TaskStateVerifierInput>
 {
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly taskStateViewProvider: TaskStateViewProvider
+  ) {}
 
   async prepareInvocation(
     _options: vscode.LanguageModelToolInvocationPrepareOptions<TaskStateVerifierInput>,
@@ -35,10 +42,11 @@ export class TaskStateVerifierTool
 
   async invoke(
     _options: vscode.LanguageModelToolInvocationOptions<TaskStateVerifierInput>,
-    _token: vscode.CancellationToken
+    token: vscode.CancellationToken
   ): Promise<vscode.LanguageModelToolResult> {
-    const userProvidedTaskState =
-      this.context.workspaceState.get<string>(TASK_STATE_KEY, '');
+    const userProvidedTaskState = await this.taskStateViewProvider.requestTaskState(
+      token
+    );
 
     return new vscode.LanguageModelToolResult([
       new vscode.LanguageModelTextPart(userProvidedTaskState)
@@ -47,6 +55,17 @@ export class TaskStateVerifierTool
 }
 
 export class TaskStateViewProvider implements vscode.WebviewViewProvider {
+  private view?: vscode.WebviewView;
+  private pendingVerification?:
+    | {
+        resolve: (value: string) => void;
+      }
+    | undefined;
+  private viewReadyResolver?: () => void;
+  private viewReadyPromise: Promise<void> = new Promise((resolve) => {
+    this.viewReadyResolver = resolve;
+  });
+
   constructor(private readonly context: vscode.ExtensionContext) {}
 
   resolveWebviewView(
@@ -54,6 +73,9 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ): void {
+    this.view = webviewView;
+    this.viewReadyResolver?.();
+    this.viewReadyResolver = undefined;
     webviewView.webview.options = {
       enableScripts: true
     };
@@ -68,6 +90,19 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
       async (message: TaskStateViewMessage) => {
         if (message.type === 'ready') {
           await syncState();
+          await webviewView.webview.postMessage({
+            type: 'mode',
+            verificationPending: this.pendingVerification !== undefined
+          });
+          return;
+        }
+
+        if (message.type === 'save') {
+          await this.context.workspaceState.update(TASK_STATE_KEY, message.value);
+          await webviewView.webview.postMessage({
+            type: 'saved',
+            value: message.value
+          });
           return;
         }
 
@@ -76,10 +111,76 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
           type: 'saved',
           value: message.value
         });
+        await this.context.workspaceState.update(TASK_STATE_KEY, '');
+        await webviewView.webview.postMessage({
+          type: 'setValue',
+          value: ''
+        });
+        await webviewView.webview.postMessage({
+          type: 'mode',
+          verificationPending: false
+        });
+
+        this.pendingVerification?.resolve(message.value);
+        this.pendingVerification = undefined;
       },
       undefined,
       this.context.subscriptions
     );
+
+    webviewView.onDidDispose(() => {
+      this.view = undefined;
+      this.pendingVerification?.resolve('');
+      this.pendingVerification = undefined;
+    });
+  }
+
+  async requestTaskState(token: vscode.CancellationToken): Promise<string> {
+    if (this.pendingVerification) {
+      return '';
+    }
+
+    await vscode.commands.executeCommand('workbench.view.extension.contextCaddy');
+    await vscode.commands.executeCommand(`${TASK_STATE_VIEW_ID}.focus`);
+    const view = await this.waitForView();
+
+    const activeValue = this.context.workspaceState.get<string>(TASK_STATE_KEY, '');
+    await view?.webview.postMessage({
+      type: 'setValue',
+      value: activeValue
+    });
+    await view?.webview.postMessage({
+      type: 'mode',
+      verificationPending: true
+    });
+    await view?.webview.postMessage({
+      type: 'focusForVerification'
+    });
+
+    return await new Promise<string>((resolve) => {
+      this.pendingVerification = { resolve };
+
+      token.onCancellationRequested(async () => {
+        if (!this.pendingVerification) {
+          return;
+        }
+        this.pendingVerification.resolve('');
+        this.pendingVerification = undefined;
+        await view?.webview.postMessage({
+          type: 'mode',
+          verificationPending: false
+        });
+      });
+    });
+  }
+
+  private async waitForView(): Promise<vscode.WebviewView | undefined> {
+    if (this.view) {
+      return this.view;
+    }
+
+    await this.viewReadyPromise;
+    return this.view;
   }
 
   private getWebviewHtml(): string {
@@ -145,6 +246,16 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
         margin-top: 10px;
         min-height: 18px;
       }
+      .callout {
+        border: 1px solid var(--vscode-inputOption-activeBorder, transparent);
+        background: var(--vscode-editor-inactiveSelectionBackground);
+        padding: 10px;
+        margin: 0 0 10px;
+        display: none;
+      }
+      .callout.visible {
+        display: block;
+      }
       code {
         font-family: var(--vscode-editor-font-family);
       }
@@ -154,33 +265,58 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     <h1>Task State</h1>
     <p>
       Save the current task state, approval, or request context here. The
-      <code>#taskStateVerifier</code> tool returns this saved text unchanged.
+      <code>#taskStateVerifier</code> tool can also focus this box and wait for
+      you to submit text during verification.
     </p>
+    <div class="callout" id="callout">
+      Copilot is waiting for task-state verification. Enter text, then use
+      <strong>Submit to Copilot</strong>.
+    </div>
     <textarea
       id="taskState"
       placeholder="Describe the current task state"
     ></textarea>
     <div class="actions">
       <button class="primary" id="save">Save Task State</button>
+      <button class="primary" id="submit">Submit to Copilot</button>
     </div>
     <div class="status" id="status"></div>
     <script nonce="${nonce}">
       const vscode = acquireVsCodeApi();
       const textarea = document.getElementById('taskState');
       const save = document.getElementById('save');
+      const submit = document.getElementById('submit');
       const status = document.getElementById('status');
+      const callout = document.getElementById('callout');
+      let verificationPending = false;
 
       const setStatus = (text) => {
         status.textContent = text;
       };
 
+      const renderMode = () => {
+        callout.classList.toggle('visible', verificationPending);
+        submit.disabled = !verificationPending;
+        save.disabled = verificationPending;
+      };
+
       save.addEventListener('click', () => {
         vscode.postMessage({ type: 'save', value: textarea.value });
+        setStatus('Saved.');
+      });
+
+      submit.addEventListener('click', () => {
+        vscode.postMessage({ type: 'submit', value: textarea.value });
+        setStatus('Submitted to Copilot.');
       });
 
       textarea.addEventListener('keydown', (event) => {
         if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
           event.preventDefault();
+          if (verificationPending) {
+            submit.click();
+            return;
+          }
           save.click();
         }
       });
@@ -192,15 +328,30 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
         }
         if (message.type === 'setValue') {
           textarea.value = message.value ?? '';
-          setStatus('');
+          if (!verificationPending) {
+            setStatus('');
+          }
           return;
         }
         if (message.type === 'saved') {
           textarea.value = message.value ?? '';
-          setStatus('Saved.');
+          return;
+        }
+        if (message.type === 'mode') {
+          verificationPending = Boolean(message.verificationPending);
+          renderMode();
+          if (!verificationPending) {
+            setStatus('');
+          }
+          return;
+        }
+        if (message.type === 'focusForVerification') {
+          textarea.focus();
+          textarea.select();
         }
       });
 
+      renderMode();
       vscode.postMessage({ type: 'ready' });
     </script>
   </body>

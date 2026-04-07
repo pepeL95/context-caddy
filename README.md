@@ -6,7 +6,7 @@ This extension currently contributes one VS Code Language Model Tool:
 
 In Copilot Chat agent mode, it can be enabled as a tool and explicitly invoked with `#taskStateVerifier`.
 
-The tool takes no model-provided input. Instead, the user saves task-state text in the persistent Context Caddy Task State view, and the tool returns that saved text unchanged:
+The tool takes no model-provided input. On invocation, it can reveal and focus the persistent Context Caddy Task State view, wait for the user to submit task-state text there, return that submitted text unchanged, and then clear the textbox:
 
 ```text
 user approved the current plan
@@ -18,10 +18,10 @@ This implementation is intentionally minimal:
 
 - It accepts no input from the model.
 - It provides a persistent Task State view in the Context Caddy activity bar container.
-- The user can edit and save multiline task-state text there at any time.
-- The saved text is more durable than transient prompts because it is not tied to a single tool invocation.
-- The tool returns the exact saved text unchanged.
-- If nothing has been saved yet, it returns an empty string.
+- The user can edit multiline task-state text there at any time.
+- During tool invocation, the extension can reveal that view, focus the textbox, and wait for `Submit to Copilot`.
+- After successful submission, the tool returns the exact submitted text unchanged and clears the textbox.
+- The view is more durable than transient prompts because it is not tied to a popup that disappears on focus changes.
 - Its description is written to make this the intended pre-response verification step for current task state and user acceptance context.
 - The extension API still does not guarantee invocation before every response.
 
@@ -88,7 +88,7 @@ After installation and reload, Copilot in that same VS Code window can discover 
 3. In the `Context Caddy` activity bar container, enter and save the current task-state text.
 4. Open Copilot Chat in Agent mode.
 5. Enable `Task State Verifier` in the tools picker.
-6. Use `#taskStateVerifier` when you want Copilot to read the saved task state.
+6. Use `#taskStateVerifier` when you want Copilot to focus the task-state textbox and wait for you to submit text.
 
 ## Agent setup
 
@@ -103,15 +103,15 @@ If an agent or teammate needs to set this up from scratch, the reliable local se
 7. Open Copilot Chat in Agent mode.
 8. Enable `Task State Verifier` in the tools picker.
 9. Open `Context Caddy: Open Task State` from the Command Palette.
-10. Save the current task-state text in the Task State view.
-11. Use `#taskStateVerifier` explicitly for the most reliable invocation path.
+10. Use `#taskStateVerifier` explicitly for the most reliable invocation path.
+11. When the tool is approved, enter text in the focused Task State view and click `Submit to Copilot`.
 
 ## Test in Copilot Chat
 
 1. Open a folder workspace in either the Extension Development Host or your normal VS Code window after VSIX installation.
 2. Open Copilot Chat and switch to Agent mode.
 3. Enable the tool in the tools picker.
-4. Open `Context Caddy: Open Task State` and save some task-state text.
+4. Open `Context Caddy: Open Task State` once so the view is visible.
 5. Try one of these prompts:
 
    ```text
@@ -125,8 +125,8 @@ If an agent or teammate needs to set this up from scratch, the reliable local se
 ## Limitations
 
 - Extension tools show a confirmation dialog before invocation. Users can allow the tool per invocation or choose an always-allow option.
-- The tool returns the most recently saved task-state text. It does not prompt for new text during invocation.
-- The user must save task-state text in the persistent view before the tool has anything useful to return.
+- The tool depends on the user submitting text from the persistent Task State view after approval.
+- If the tool is cancelled or the view is closed before submission, it returns an empty string.
 - The current VS Code extension tool API does not provide a way to force Copilot to always invoke this tool before every response, even if the tool description marks it as mandatory.
 
 ## Next upgrade path
