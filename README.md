@@ -19,6 +19,7 @@ This implementation is intentionally minimal:
 - It accepts no input from the model.
 - It provides a persistent Task State view in the Context Caddy activity bar container.
 - The user can edit and save multiline task-state text there at any time.
+- The saved text is more durable than transient prompts because it is not tied to a single tool invocation.
 - The tool returns the exact saved text unchanged.
 - If nothing has been saved yet, it returns an empty string.
 - Its description is written to make this the intended pre-response verification step for current task state and user acceptance context.
@@ -80,6 +81,15 @@ Alternative install path:
 
 After installation and reload, Copilot in that same VS Code window can discover the tool.
 
+## Use in the current window
+
+1. Reload VS Code after installation with `Developer: Reload Window`.
+2. Run `Context Caddy: Open Task State` from the Command Palette.
+3. In the `Context Caddy` activity bar container, enter and save the current task-state text.
+4. Open Copilot Chat in Agent mode.
+5. Enable `Task State Verifier` in the tools picker.
+6. Use `#taskStateVerifier` when you want Copilot to read the saved task state.
+
 ## Agent setup
 
 If an agent or teammate needs to set this up from scratch, the reliable local sequence is:
@@ -116,6 +126,7 @@ If an agent or teammate needs to set this up from scratch, the reliable local se
 
 - Extension tools show a confirmation dialog before invocation. Users can allow the tool per invocation or choose an always-allow option.
 - The tool returns the most recently saved task-state text. It does not prompt for new text during invocation.
+- The user must save task-state text in the persistent view before the tool has anything useful to return.
 - The current VS Code extension tool API does not provide a way to force Copilot to always invoke this tool before every response, even if the tool description marks it as mandatory.
 
 ## Next upgrade path
