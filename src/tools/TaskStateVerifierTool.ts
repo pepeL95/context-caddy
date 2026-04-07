@@ -100,23 +100,11 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
           return;
         }
 
-        await this.context.workspaceState.update(TASK_STATE_KEY, message.value);
-        await webviewView.webview.postMessage({
-          type: 'saved',
-          value: message.value
-        });
-        await this.context.workspaceState.update(TASK_STATE_KEY, '');
-        await webviewView.webview.postMessage({
-          type: 'setValue',
-          value: ''
-        });
-        await webviewView.webview.postMessage({
-          type: 'mode',
-          verificationPending: false
-        });
-
-        this.pendingVerification?.resolve(message.value);
+        const pendingVerification = this.pendingVerification;
         this.pendingVerification = undefined;
+        pendingVerification?.resolve(message.value);
+
+        void this.resetVerificationUi(webviewView, message.value);
       },
       undefined,
       this.context.subscriptions
@@ -181,6 +169,30 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     await view?.webview.postMessage({
       type: 'focusForVerification'
     });
+  }
+
+  private async resetVerificationUi(
+    webviewView: vscode.WebviewView,
+    submittedValue: string
+  ): Promise<void> {
+    try {
+      await this.context.workspaceState.update(TASK_STATE_KEY, submittedValue);
+      await webviewView.webview.postMessage({
+        type: 'saved',
+        value: submittedValue
+      });
+      await this.context.workspaceState.update(TASK_STATE_KEY, '');
+      await webviewView.webview.postMessage({
+        type: 'setValue',
+        value: ''
+      });
+      await webviewView.webview.postMessage({
+        type: 'mode',
+        verificationPending: false
+      });
+    } catch {
+      // The tool result has already been returned; UI reset failures should not hang it.
+    }
   }
 
   private async waitForView(): Promise<vscode.WebviewView | undefined> {
