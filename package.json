@@ -4,6 +4,10 @@
   "description": "A lightweight VS Code extension that exposes Copilot tools for context and request management.",
   "publisher": "yourpublisher",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pepeL95/context-caddy.git"
+  },
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -39,10 +43,13 @@
     ]
   },
   "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "clean": "rm -rf out *.vsix",
+    "compile": "npm run clean && tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package:vsix": "npm run compile && vsce package"
   },
   "devDependencies": {
+    "@vscode/vsce": "^3.6.2",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.100.0",
     "typescript": "^5.0.0"

@@ -23,7 +23,7 @@ This implementation is intentionally minimal:
 - Its description is written to make this the intended pre-response verification step for current task state and user acceptance context.
 - The extension API still does not guarantee invocation before every response.
 
-## Run locally
+## Development host
 
 1. Install dependencies:
 
@@ -41,9 +41,61 @@ This implementation is intentionally minimal:
 
 If you see `Cannot find module 'vscode'`, you are likely running `out/extension.js` directly with Node instead of launching the `Run Extension` debug configuration. Extension code must run inside VS Code's extension host.
 
+## Install in your current VS Code window
+
+If you want the extension available in the VS Code window you are already using, package and install it as a `.vsix` instead of using the Extension Development Host.
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Compile the extension:
+
+   ```bash
+   npm run compile
+   ```
+
+3. Package the extension:
+
+   ```bash
+   npm run package:vsix
+   ```
+
+4. Install the generated `.vsix` in your current VS Code:
+
+   ```bash
+   code --install-extension context-caddy-0.0.1.vsix
+   ```
+
+5. Reload VS Code:
+
+   - Run `Developer: Reload Window` from the Command Palette.
+
+Alternative install path:
+
+- Run `Extensions: Install from VSIX...` from the Command Palette and select `context-caddy-0.0.1.vsix`.
+
+After installation and reload, Copilot in that same VS Code window can discover the tool.
+
+## Agent setup
+
+If an agent or teammate needs to set this up from scratch, the reliable local sequence is:
+
+1. Clone the repository.
+2. Run `npm install`.
+3. Run `npm run compile`.
+4. Run `npm run package:vsix`.
+5. Install `context-caddy-0.0.1.vsix` with `code --install-extension context-caddy-0.0.1.vsix` or `Extensions: Install from VSIX...`.
+6. Reload the VS Code window.
+7. Open Copilot Chat in Agent mode.
+8. Enable `Task State Verifier` in the tools picker.
+9. Use `#taskStateVerifier` explicitly for the most reliable invocation path.
+
 ## Test in Copilot Chat
 
-1. Open a folder workspace in the Extension Development Host.
+1. Open a folder workspace in either the Extension Development Host or your normal VS Code window after VSIX installation.
 2. Open Copilot Chat and switch to Agent mode.
 3. Enable the tool in the tools picker.
 4. Try one of these prompts:
