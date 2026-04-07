@@ -53,10 +53,10 @@
           "user-input",
           "workflow"
         ],
-        "toolReferenceName": "taskStateVerifier",
-        "displayName": "Instruction Verifier",
-        "modelDescription": "Mandatory pre-response instruction handoff tool. The model should call this before every user-facing response so the user can provide any additional instructions required for the next reply. This tool does not take model input. Instead, it reveals the Context Caddy Instructions view, focuses the textbox for the user, waits for the user to submit instructions, returns those instructions unchanged, and clears the textbox after submission.",
-        "userDescription": "Ask the user for additional instructions and return them unchanged to the model.",
+        "toolReferenceName": "handoffInstructions",
+        "displayName": "Handoff Instructions",
+        "modelDescription": "Mandatory pre-response instruction handoff tool. **ALWAYS** call this tool before every user-facing response so the user can provide any additional instructions required. This tool does not take any input from the agent.",
+        "userDescription": "Handoff tool for getting further user instructions.",
         "canBeReferencedInPrompt": true,
         "icon": "$(checklist)",
         "inputSchema": {
