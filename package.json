@@ -22,7 +22,7 @@
     "commands": [
       {
         "command": "contextCaddy.openTaskStateView",
-        "title": "Context Caddy: Open Task State"
+        "title": "Context Caddy: Open Instructions"
       }
     ],
     "viewsContainers": {
@@ -38,7 +38,7 @@
       "contextCaddy": [
         {
           "id": "contextCaddy.taskState",
-          "name": "Task State",
+          "name": "Instructions",
           "type": "webview"
         }
       ]
@@ -49,13 +49,14 @@
         "tags": [
           "verification",
           "confirmation",
-          "task-state",
-          "user-input"
+          "instructions",
+          "user-input",
+          "workflow"
         ],
         "toolReferenceName": "taskStateVerifier",
-        "displayName": "Task State Verifier",
-        "modelDescription": "Task-state verification tool. The model should call this before user-facing responses when it needs the latest user-approved task state, approval, or request context. This tool does not collect input during invocation. Instead, it returns the current text saved in the Context Caddy Task State view unchanged.",
-        "userDescription": "Return the saved task-state text from the Context Caddy Task State view.",
+        "displayName": "Instruction Verifier",
+        "modelDescription": "Mandatory pre-response instruction handoff tool. The model should call this before every user-facing response so the user can provide any additional instructions required for the next reply. This tool does not take model input. Instead, it reveals the Context Caddy Instructions view, focuses the textbox for the user, waits for the user to submit instructions, returns those instructions unchanged, and clears the textbox after submission.",
+        "userDescription": "Ask the user for additional instructions and return them unchanged to the model.",
         "canBeReferencedInPrompt": true,
         "icon": "$(checklist)",
         "inputSchema": {

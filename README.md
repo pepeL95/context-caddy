@@ -6,10 +6,10 @@ This extension currently contributes one VS Code Language Model Tool:
 
 In Copilot Chat agent mode, it can be enabled as a tool and explicitly invoked with `#taskStateVerifier`.
 
-The tool takes no model-provided input. On invocation, it reveals and focuses the persistent Context Caddy Task State view, waits for the user to submit task-state text there, returns that submitted text unchanged, and then clears the textbox:
+The tool takes no model-provided input. On invocation, it reveals and focuses the persistent Context Caddy Instructions view, waits for the user to submit instructions there, returns those instructions unchanged, and then clears the textbox:
 
 ```text
-user approved the current plan
+use the staging environment and keep the response under 3 bullets
 ```
 
 ## Current behavior
@@ -17,12 +17,12 @@ user approved the current plan
 This implementation is intentionally minimal:
 
 - It accepts no input from the model.
-- It provides a persistent Task State view in the Context Caddy activity bar container.
-- The user can edit multiline task-state text there at any time.
+- It provides a persistent Instructions view in the Context Caddy activity bar container.
+- The user can enter multiline instructions for the agent there.
 - During tool invocation, the extension reveals that view, focuses the textbox, and waits for `Submit`.
-- After successful submission, the tool returns the exact submitted text unchanged and clears the textbox.
+- After successful submission, the tool returns the exact submitted instructions unchanged and clears the textbox.
 - The view is more durable than transient prompts because it is not tied to a popup that disappears on focus changes.
-- Its description is written to make this the intended pre-response verification step for current task state and user acceptance context.
+- Its description is written to make this the intended pre-response instruction handoff before any user-facing response.
 - The extension API still does not guarantee invocation before every response.
 
 ## Development host
@@ -84,11 +84,11 @@ After installation and reload, Copilot in that same VS Code window can discover 
 ## Use in the current window
 
 1. Reload VS Code after installation with `Developer: Reload Window`.
-2. Run `Context Caddy: Open Task State` from the Command Palette.
-3. In the `Context Caddy` activity bar container, enter task-state text there directly, or wait for Copilot to focus it during verification.
+2. Run `Context Caddy: Open Instructions` from the Command Palette.
+3. In the `Context Caddy` activity bar container, enter instructions there directly, or wait for Copilot to focus it during verification.
 4. Open Copilot Chat in Agent mode.
-5. Enable `Task State Verifier` in the tools picker.
-6. Use `#taskStateVerifier` when you want Copilot to focus the task-state textbox and wait for you to submit text.
+5. Enable `Instruction Verifier` in the tools picker.
+6. Use `#taskStateVerifier` when you want Copilot to focus the instructions textbox and wait for you to submit text.
 
 ## Agent setup
 
@@ -101,17 +101,17 @@ If an agent or teammate needs to set this up from scratch, the reliable local se
 5. Install `context-caddy-0.0.1.vsix` with `code --install-extension context-caddy-0.0.1.vsix` or `Extensions: Install from VSIX...`.
 6. Reload the VS Code window.
 7. Open Copilot Chat in Agent mode.
-8. Enable `Task State Verifier` in the tools picker.
-9. Open `Context Caddy: Open Task State` from the Command Palette.
+8. Enable `Instruction Verifier` in the tools picker.
+9. Open `Context Caddy: Open Instructions` from the Command Palette.
 10. Use `#taskStateVerifier` explicitly for the most reliable invocation path.
-11. When the tool is approved, enter text in the focused Task State view and click `Submit`.
+11. When the tool is approved, enter instructions in the focused Instructions view and click `Submit`.
 
 ## Test in Copilot Chat
 
 1. Open a folder workspace in either the Extension Development Host or your normal VS Code window after VSIX installation.
 2. Open Copilot Chat and switch to Agent mode.
 3. Enable the tool in the tools picker.
-4. Open `Context Caddy: Open Task State` once so the view is visible.
+4. Open `Context Caddy: Open Instructions` once so the view is visible.
 5. Try one of these prompts:
 
    ```text
@@ -119,13 +119,13 @@ If an agent or teammate needs to set this up from scratch, the reliable local se
    ```
 
    ```text
-   Before you answer, use #taskStateVerifier so the user can confirm the current task state.
+   Before you answer, use #taskStateVerifier so the user can provide additional instructions.
    ```
 
 ## Limitations
 
 - Extension tools show a confirmation dialog before invocation. Users can allow the tool per invocation or choose an always-allow option.
-- The tool depends on the user submitting text from the persistent Task State view after approval.
+- The tool depends on the user submitting text from the persistent Instructions view after approval.
 - If the tool is cancelled or the view is closed before submission, it returns an empty string.
 - The current VS Code extension tool API does not provide a way to force Copilot to always invoke this tool before every response, even if the tool description marks it as mandatory.
 

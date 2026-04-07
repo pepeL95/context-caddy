@@ -3,10 +3,6 @@ import * as vscode from 'vscode';
 type TaskStateVerifierInput = Record<string, never>;
 type TaskStateViewMessage =
   | {
-      type: 'save';
-      value: string;
-    }
-  | {
       type: 'submit';
       value: string;
     }
@@ -14,7 +10,6 @@ type TaskStateViewMessage =
       type: 'ready';
     };
 
-export const TASK_STATE_KEY = 'contextCaddy.taskState';
 export const TASK_STATE_VIEW_ID = 'contextCaddy.taskState';
 
 export class TaskStateVerifierTool
@@ -27,11 +22,11 @@ export class TaskStateVerifierTool
     _token: vscode.CancellationToken
   ): Promise<vscode.PreparedToolInvocation | undefined> {
     return {
-      invocationMessage: 'Verifying task state',
+      invocationMessage: 'Collecting user instructions',
       confirmationMessages: {
-        title: 'Verify task state',
+        title: 'Collect user instructions',
         message: new vscode.MarkdownString(
-          'Allow this tool to focus Context Caddy, wait for task-state text, and return it to Copilot?'
+          'Allow this tool to focus Context Caddy, wait for user instructions, and return them to Copilot?'
         )
       }
     };
@@ -84,29 +79,14 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     };
     webviewView.webview.html = this.getWebviewHtml();
 
-    const syncState = async (): Promise<void> => {
-      const value = this.context.workspaceState.get<string>(TASK_STATE_KEY, '');
-      await webviewView.webview.postMessage({ type: 'setValue', value });
-    };
-
     webviewView.webview.onDidReceiveMessage(
       async (message: TaskStateViewMessage) => {
         if (message.type === 'ready') {
           this.webviewReadyResolver?.();
           this.webviewReadyResolver = undefined;
-          await syncState();
           if (this.pendingVerification) {
             await this.postFocusRequest(webviewView);
           }
-          return;
-        }
-
-        if (message.type === 'save') {
-          await this.context.workspaceState.update(TASK_STATE_KEY, message.value);
-          await webviewView.webview.postMessage({
-            type: 'saved',
-            value: message.value
-          });
           return;
         }
 
@@ -169,10 +149,9 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
   private async postFocusRequest(
     webviewView: vscode.WebviewView | undefined
   ): Promise<void> {
-    const currentValue = this.context.workspaceState.get<string>(TASK_STATE_KEY, '');
     await webviewView?.webview.postMessage({
       type: 'setValue',
-      value: currentValue
+      value: ''
     });
     await webviewView?.webview.postMessage({
       type: 'focusForVerification'
@@ -183,7 +162,6 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     webviewView: vscode.WebviewView | undefined
   ): Promise<void> {
     try {
-      await this.context.workspaceState.update(TASK_STATE_KEY, '');
       await webviewView?.webview.postMessage({
         type: 'setValue',
         value: ''
@@ -296,39 +274,34 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     </style>
   </head>
   <body>
-    <h1>Task State</h1>
+    <h1>Instructions</h1>
     <p>
-      Save the current task state, approval, or request context here. The
-      <code>#taskStateVerifier</code> tool can focus this box and wait for you
-      to submit text during verification.
+      Provide any additional instructions you want Copilot to follow next. The
+      <code>#taskStateVerifier</code> tool focuses this box during verification
+      and returns your submitted instructions unchanged.
     </p>
     <div class="callout">
-      When Copilot invokes the tool, type the text here and press
+      When Copilot invokes the tool, type the instructions you want the agent to
+      follow, then press
       <strong>Submit</strong>.
     </div>
     <textarea
       id="taskState"
-      placeholder="Describe the current task state"
+      placeholder="Type instructions for the agent"
     ></textarea>
     <div class="actions">
-      <button class="primary" id="save">Save Task State</button>
       <button class="primary" id="submit">Submit</button>
     </div>
     <div class="status" id="status"></div>
     <script nonce="${nonce}">
       const vscode = acquireVsCodeApi();
       const textarea = document.getElementById('taskState');
-      const save = document.getElementById('save');
       const submit = document.getElementById('submit');
       const status = document.getElementById('status');
 
       const setStatus = (text) => {
         status.textContent = text;
       };
-
-      save.addEventListener('click', () => {
-        vscode.postMessage({ type: 'save', value: textarea.value });
-      });
 
       submit.addEventListener('click', () => {
         vscode.postMessage({ type: 'submit', value: textarea.value });
@@ -349,11 +322,6 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
         if (message.type === 'setValue') {
           textarea.value = message.value ?? '';
           setStatus('');
-          return;
-        }
-        if (message.type === 'saved') {
-          textarea.value = message.value ?? '';
-          setStatus('Saved.');
           return;
         }
         if (message.type === 'submitted') {

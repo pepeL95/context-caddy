@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import {
-  TASK_STATE_KEY,
   TASK_STATE_VIEW_ID,
   TaskStateVerifierTool,
   TaskStateViewProvider
@@ -31,8 +30,6 @@ export function activate(context: vscode.ExtensionContext): void {
       new TaskStateVerifierTool(taskStateViewProvider)
     )
   );
-
-  void context.workspaceState.get<string>(TASK_STATE_KEY, '');
 }
 
 export function deactivate(): void {}
