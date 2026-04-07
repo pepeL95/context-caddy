@@ -21,7 +21,7 @@
   "contributes": {
     "commands": [
       {
-        "command": "contextCaddy.openTaskStateView",
+        "command": "contextCaddy.openInstructionsView",
         "title": "Context Caddy: Open Instructions"
       }
     ],
@@ -37,7 +37,7 @@
     "views": {
       "contextCaddy": [
         {
-          "id": "contextCaddy.taskState",
+          "id": "contextCaddy.instructions",
           "name": "Instructions",
           "type": "webview"
         }
@@ -45,7 +45,7 @@
     },
     "languageModelTools": [
       {
-        "name": "yourpublisher_taskStateVerifier",
+        "name": "yourpublisher_handoffInstructions",
         "tags": [
           "verification",
           "confirmation",

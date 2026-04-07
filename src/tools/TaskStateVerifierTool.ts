@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
-type TaskStateVerifierInput = Record<string, never>;
-type TaskStateViewMessage =
+type HandoffInstructionsInput = Record<string, never>;
+type InstructionsViewMessage =
   | {
       type: 'submit';
       value: string;
@@ -10,15 +10,17 @@ type TaskStateViewMessage =
       type: 'ready';
     };
 
-export const TASK_STATE_VIEW_ID = 'contextCaddy.taskState';
+export const INSTRUCTIONS_VIEW_ID = 'contextCaddy.instructions';
 
-export class TaskStateVerifierTool
-  implements vscode.LanguageModelTool<TaskStateVerifierInput>
+export class HandoffInstructionsTool
+  implements vscode.LanguageModelTool<HandoffInstructionsInput>
 {
-  constructor(private readonly taskStateViewProvider: TaskStateViewProvider) {}
+  constructor(
+    private readonly instructionsViewProvider: InstructionsViewProvider
+  ) {}
 
   async prepareInvocation(
-    _options: vscode.LanguageModelToolInvocationPrepareOptions<TaskStateVerifierInput>,
+    _options: vscode.LanguageModelToolInvocationPrepareOptions<HandoffInstructionsInput>,
     _token: vscode.CancellationToken
   ): Promise<vscode.PreparedToolInvocation | undefined> {
     return {
@@ -33,20 +35,21 @@ export class TaskStateVerifierTool
   }
 
   async invoke(
-    _options: vscode.LanguageModelToolInvocationOptions<TaskStateVerifierInput>,
+    _options: vscode.LanguageModelToolInvocationOptions<HandoffInstructionsInput>,
     token: vscode.CancellationToken
   ): Promise<vscode.LanguageModelToolResult> {
-    const userProvidedTaskState = await this.taskStateViewProvider.requestTaskState(
+    const userProvidedInstructions =
+      await this.instructionsViewProvider.requestInstructions(
       token
-    );
+      );
 
     return new vscode.LanguageModelToolResult([
-      new vscode.LanguageModelTextPart(userProvidedTaskState)
+      new vscode.LanguageModelTextPart(userProvidedInstructions)
     ]);
   }
 }
 
-export class TaskStateViewProvider implements vscode.WebviewViewProvider {
+export class InstructionsViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private pendingVerification?:
     | {
@@ -80,7 +83,7 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = this.getWebviewHtml();
 
     webviewView.webview.onDidReceiveMessage(
-      async (message: TaskStateViewMessage) => {
+      async (message: InstructionsViewMessage) => {
         if (message.type === 'ready') {
           this.webviewReadyResolver?.();
           this.webviewReadyResolver = undefined;
@@ -109,7 +112,7 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  async requestTaskState(token: vscode.CancellationToken): Promise<string> {
+  async requestInstructions(token: vscode.CancellationToken): Promise<string> {
     if (this.pendingVerification) {
       return '';
     }
@@ -141,7 +144,7 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     await vscode.commands.executeCommand('workbench.view.extension.contextCaddy');
     const view = await this.waitForView();
     view?.show(false);
-    await vscode.commands.executeCommand(`${TASK_STATE_VIEW_ID}.focus`);
+    await vscode.commands.executeCommand(`${INSTRUCTIONS_VIEW_ID}.focus`);
     await this.waitForWebviewReady();
     await this.postFocusRequest(view);
   }
@@ -276,12 +279,12 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
   <body>
     <h1>Instructions</h1>
     <p>
-      Provide any additional instructions you want Copilot to follow next. The
+      Provide any additional instructions you want the agent to follow next. The
       <code>#handoffInstructions</code> tool focuses this box during verification
       and returns your submitted instructions unchanged.
     </p>
     <div class="callout">
-      When Copilot invokes the tool, type the instructions you want the agent to
+      When the agent invokes the tool, type the instructions you want the agent to
       follow, then press
       <strong>Submit</strong>.
     </div>

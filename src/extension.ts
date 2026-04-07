@@ -1,33 +1,33 @@
 import * as vscode from 'vscode';
 import {
-  TASK_STATE_VIEW_ID,
-  TaskStateVerifierTool,
-  TaskStateViewProvider
+  HandoffInstructionsTool,
+  InstructionsViewProvider,
+  INSTRUCTIONS_VIEW_ID
 } from './tools/TaskStateVerifierTool';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const taskStateViewProvider = new TaskStateViewProvider(context);
+  const instructionsViewProvider = new InstructionsViewProvider(context);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
-      TASK_STATE_VIEW_ID,
-      taskStateViewProvider
+      INSTRUCTIONS_VIEW_ID,
+      instructionsViewProvider
     )
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('contextCaddy.openTaskStateView', async () => {
+    vscode.commands.registerCommand('contextCaddy.openInstructionsView', async () => {
       await vscode.commands.executeCommand(
         'workbench.view.extension.contextCaddy'
       );
-      await vscode.commands.executeCommand(`${TASK_STATE_VIEW_ID}.focus`);
+      await vscode.commands.executeCommand(`${INSTRUCTIONS_VIEW_ID}.focus`);
     })
   );
 
   context.subscriptions.push(
     vscode.lm.registerTool(
-      'yourpublisher_taskStateVerifier',
-      new TaskStateVerifierTool(taskStateViewProvider)
+      'yourpublisher_handoffInstructions',
+      new HandoffInstructionsTool(instructionsViewProvider)
     )
   );
 }

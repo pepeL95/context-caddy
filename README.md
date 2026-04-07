@@ -2,9 +2,9 @@
 
 This extension currently contributes one VS Code Language Model Tool:
 
-- `yourpublisher_taskStateVerifier`
+- `yourpublisher_handoffInstructions`
 
-In Copilot Chat agent mode, it can be enabled as a tool and explicitly invoked with `#taskStateVerifier`.
+In Copilot Chat agent mode, it can be enabled as a tool and explicitly invoked with `#handoffInstructions`.
 
 The tool takes no model-provided input. On invocation, it reveals and focuses the persistent Context Caddy Instructions view, waits for the user to submit instructions there, returns those instructions unchanged, and then clears the textbox:
 
@@ -88,7 +88,7 @@ After installation and reload, Copilot in that same VS Code window can discover 
 3. In the `Context Caddy` activity bar container, enter instructions there directly, or wait for Copilot to focus it during verification.
 4. Open Copilot Chat in Agent mode.
 5. Enable `Instruction Verifier` in the tools picker.
-6. Use `#taskStateVerifier` when you want Copilot to focus the instructions textbox and wait for you to submit text.
+6. Use `#handoffInstructions` when you want Copilot to focus the instructions textbox and wait for you to submit text.
 
 ## Agent setup
 
@@ -103,7 +103,7 @@ If an agent or teammate needs to set this up from scratch, the reliable local se
 7. Open Copilot Chat in Agent mode.
 8. Enable `Instruction Verifier` in the tools picker.
 9. Open `Context Caddy: Open Instructions` from the Command Palette.
-10. Use `#taskStateVerifier` explicitly for the most reliable invocation path.
+10. Use `#handoffInstructions` explicitly for the most reliable invocation path.
 11. When the tool is approved, enter instructions in the focused Instructions view and click `Submit`.
 
 ## Test in Copilot Chat
@@ -115,11 +115,11 @@ If an agent or teammate needs to set this up from scratch, the reliable local se
 5. Try one of these prompts:
 
    ```text
-   Call #taskStateVerifier before responding.
+   Call #handoffInstructions before responding.
    ```
 
    ```text
-   Before you answer, use #taskStateVerifier so the user can provide additional instructions.
+   Before you answer, use #handoffInstructions so the user can provide additional instructions.
    ```
 
 ## Limitations
