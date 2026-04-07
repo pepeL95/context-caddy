@@ -1,0 +1,50 @@
+{
+  "name": "context-caddy",
+  "displayName": "Context Caddy",
+  "description": "A lightweight VS Code extension that exposes Copilot tools for context and request management.",
+  "publisher": "yourpublisher",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languageModelTools": [
+      {
+        "name": "yourpublisher_taskStateVerifier",
+        "tags": [
+          "verification",
+          "confirmation",
+          "task-state",
+          "user-input"
+        ],
+        "toolReferenceName": "taskStateVerifier",
+        "displayName": "Task State Verifier",
+        "modelDescription": "Task-state verification tool. The model should call this before user-facing responses when it needs the user to confirm or restate the current task state, approval, or request context. This tool does not expect model-provided input. Instead, it prompts the user for task-state text at invocation time and returns that user-provided text unchanged for the model to use.",
+        "userDescription": "Ask the user to confirm the current task state and return that text to the model.",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(checklist)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.100.0",
+    "typescript": "^5.0.0"
+  }
+}
