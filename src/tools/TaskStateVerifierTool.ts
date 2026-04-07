@@ -277,7 +277,7 @@ export class TaskStateViewProvider implements vscode.WebviewViewProvider {
     <h1>Instructions</h1>
     <p>
       Provide any additional instructions you want Copilot to follow next. The
-      <code>#taskStateVerifier</code> tool focuses this box during verification
+      <code>#handoffInstructions</code> tool focuses this box during verification
       and returns your submitted instructions unchanged.
     </p>
     <div class="callout">
