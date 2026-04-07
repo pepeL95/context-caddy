@@ -6,7 +6,7 @@ This extension currently contributes one VS Code Language Model Tool:
 
 In Copilot Chat agent mode, it can be enabled as a tool and explicitly invoked with `#taskStateVerifier`.
 
-The tool takes no model-provided input. When invoked, it prompts the user for task-state text and returns that text unchanged:
+The tool takes no model-provided input. When invoked, it opens a dedicated multiline verification panel for the user and returns the submitted text unchanged:
 
 ```text
 user approved the current plan
@@ -17,9 +17,9 @@ user approved the current plan
 This implementation is intentionally minimal:
 
 - It accepts no input from the model.
-- It opens an input box for the user to confirm or restate the current task state.
+- It opens a dedicated webview panel with a multiline textarea for the user to confirm or restate the current task state.
 - It returns the exact user-provided text unchanged.
-- If the user cancels the prompt, it returns an empty string.
+- If the user cancels or closes the panel, it returns an empty string.
 - Its description is written to make this the intended pre-response verification step for current task state and user acceptance context.
 - The extension API still does not guarantee invocation before every response.
 
@@ -111,7 +111,7 @@ If an agent or teammate needs to set this up from scratch, the reliable local se
 ## Limitations
 
 - Extension tools show a confirmation dialog before invocation. Users can allow the tool per invocation or choose an always-allow option.
-- The tool relies on the user completing the input box when it is invoked.
+- The tool relies on the user completing the verification panel when it is invoked.
 - The current VS Code extension tool API does not provide a way to force Copilot to always invoke this tool before every response, even if the tool description marks it as mandatory.
 
 ## Next upgrade path

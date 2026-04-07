@@ -30,7 +30,7 @@
         ],
         "toolReferenceName": "taskStateVerifier",
         "displayName": "Task State Verifier",
-        "modelDescription": "Task-state verification tool. The model should call this before user-facing responses when it needs the user to confirm or restate the current task state, approval, or request context. This tool does not expect model-provided input. Instead, it prompts the user for task-state text at invocation time and returns that user-provided text unchanged for the model to use.",
+        "modelDescription": "Task-state verification tool. The model should call this before user-facing responses when it needs the user to confirm or restate the current task state, approval, or request context. This tool does not expect model-provided input. Instead, it opens a dedicated multiline verification panel for the user and returns the submitted text unchanged for the model to use.",
         "userDescription": "Ask the user to confirm the current task state and return that text to the model.",
         "canBeReferencedInPrompt": true,
         "icon": "$(checklist)",
