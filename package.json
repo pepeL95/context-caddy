@@ -55,8 +55,8 @@
         ],
         "toolReferenceName": "handoffInstructions",
         "displayName": "Handoff Instructions",
-        "modelDescription": "Mandatory pre-response instruction handoff tool. **ALWAYS** call this tool before every user-facing response so the user can provide any additional instructions required. This tool does not take any input from the agent.",
-        "userDescription": "Handoff tool for getting further user instructions.",
+        "modelDescription": "Mandatory final-step instruction handoff tool. Complete the task first, synthesize the final result internally, and then call this tool as the last required step before concluding the run. This tool allows the user to provide further instructions that may revise, constrain, or extend the active run. Treat the returned text as authoritative additional user instruction for the current run. If the tool returns empty text, or the user accepts your sysnthesis, finish the run as is. This tool does not take any input from the agent.",
+        "userDescription": "Collect further user instructions before the agent finishes its response.",
         "canBeReferencedInPrompt": true,
         "icon": "$(checklist)",
         "inputSchema": {
