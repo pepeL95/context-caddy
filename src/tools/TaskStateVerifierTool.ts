@@ -10,7 +10,7 @@ type InstructionsViewMessage =
       type: 'ready';
     };
 
-export const INSTRUCTIONS_VIEW_ID = 'contextCaddy.instructions';
+export const INSTRUCTIONS_VIEW_ID = 'complianceGuardrail.instructions';
 
 export class HandoffInstructionsTool
   implements vscode.LanguageModelTool<HandoffInstructionsInput>
@@ -24,11 +24,11 @@ export class HandoffInstructionsTool
     _token: vscode.CancellationToken
   ): Promise<vscode.PreparedToolInvocation | undefined> {
     return {
-      invocationMessage: 'Collecting user instructions',
+      invocationMessage: 'Collecting compliance instructions',
       confirmationMessages: {
-        title: 'Collect user instructions',
+        title: 'Collect compliance instructions',
         message: new vscode.MarkdownString(
-          'Allow this tool to focus Context Caddy, wait for user instructions, and return them to Copilot?'
+          'Allow this tool to focus Compliance Guardrail, wait for your final instructions, and return them to Copilot?'
         )
       }
     };
@@ -39,9 +39,7 @@ export class HandoffInstructionsTool
     token: vscode.CancellationToken
   ): Promise<vscode.LanguageModelToolResult> {
     const userProvidedInstructions =
-      await this.instructionsViewProvider.requestInstructions(
-      token
-      );
+      await this.instructionsViewProvider.requestInstructions(token);
 
     return new vscode.LanguageModelToolResult([
       new vscode.LanguageModelTextPart(userProvidedInstructions)
@@ -141,7 +139,7 @@ export class InstructionsViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async beginVerificationFlow(): Promise<void> {
-    await vscode.commands.executeCommand('workbench.view.extension.contextCaddy');
+    await vscode.commands.executeCommand('workbench.view.extension.complianceGuardrail');
     const view = await this.waitForView();
     view?.show(false);
     await vscode.commands.executeCommand(`${INSTRUCTIONS_VIEW_ID}.focus`);
@@ -214,7 +212,7 @@ export class InstructionsViewProvider implements vscode.WebviewViewProvider {
       content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Task State</title>
+    <title>Compliance Guardrail</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -277,20 +275,21 @@ export class InstructionsViewProvider implements vscode.WebviewViewProvider {
     </style>
   </head>
   <body>
-    <h1>Instructions</h1>
+    <h1>Compliance Guardrail</h1>
     <p>
-      Provide any additional instructions you want the agent to follow next. The
-      <code>#handoffInstructions</code> tool focuses this box during verification
-      and returns your submitted instructions unchanged.
+      Provide final instructions, compliance constraints, approvals,
+      corrections, or extra requirements for the agent before it yields.
+      <code>#complianceGuardrail</code> focuses this box during verification and
+      returns your submitted text unchanged.
     </p>
     <div class="callout">
-      When the agent invokes the tool, type the instructions you want the agent to
-      follow, then press
+      When the agent invokes this tool, type the instructions you want enforced
+      for the current run, then press
       <strong>Submit</strong>.
     </div>
     <textarea
       id="taskState"
-      placeholder="Type instructions for the agent"
+      placeholder="Type final instructions for the agent"
     ></textarea>
     <div class="actions">
       <button class="primary" id="submit">Submit</button>
@@ -328,10 +327,11 @@ export class InstructionsViewProvider implements vscode.WebviewViewProvider {
           return;
         }
         if (message.type === 'submitted') {
-          setStatus('');
+          setStatus('Submitted to Copilot.');
           return;
         }
         if (message.type === 'focusForVerification') {
+          setStatus('Copilot is waiting for your instructions.');
           window.setTimeout(() => {
             textarea.focus();
             textarea.select();

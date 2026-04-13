@@ -16,9 +16,9 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('contextCaddy.openInstructionsView', async () => {
+    vscode.commands.registerCommand('complianceGuardrail.openInstructionsView', async () => {
       await vscode.commands.executeCommand(
-        'workbench.view.extension.contextCaddy'
+        'workbench.view.extension.complianceGuardrail'
       );
       await vscode.commands.executeCommand(`${INSTRUCTIONS_VIEW_ID}.focus`);
     })
@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.lm.registerTool(
-      'yourpublisher_handoffInstructions',
+      'local_complianceGuardrail',
       new HandoffInstructionsTool(instructionsViewProvider)
     )
   );
